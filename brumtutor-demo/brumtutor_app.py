@@ -1,5 +1,3 @@
-# BrumTutor Tech Demo
-
 import streamlit as st
 import requests
 import base64
@@ -74,6 +72,61 @@ Avoid just giving the answer — teach the process kindly, like a real tutor.
                 result = response.json()
                 answer = result["choices"][0]["message"]["content"]
                 st.markdown("### 🧾 AI Explanation:")
+                st.write(answer)
+            else:
+                st.error("Failed to get response from Azure OpenAI. Check your API key or endpoint.")
+
+# --- Question Input Section ---
+st.markdown("### 📝 Ask Your Question:")
+question = st.text_input("Enter your homework question:")
+
+if question:
+    with st.spinner("Processing your question... 🧠"):
+        # Fallback if no API key
+        if not API_KEY or API_KEY.strip() == "":
+            st.warning("⚠️ API key not found. Showing mock answer instead.")
+            st.markdown("### AI Answer (Example):")
+            st.write(f"""
+Here’s an example of how to answer the question: "{question}"
+
+**Answer:** Follow these steps to approach the solution:
+1. Read the question carefully.
+2. Break it down into smaller parts.
+3. Look for key concepts that can help you solve it.
+4. Use simple methods to solve one part at a time.
+
+👉 This is a placeholder answer. // Waiting for API Key
+""")
+        else:
+            # Actual API call for answering the question
+            prompt = f"""
+You are a helpful tutor for secondary school students in Birmingham.
+Please read the question asked: "{question}"
+Explain how to solve it step-by-step in simple {language}.
+Avoid giving the direct answer — focus on guiding through the process.
+"""
+
+            data = {
+                "messages": [
+                    {"role": "system", "content": "You are a helpful and friendly AI tutor."},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": prompt}
+                    ]}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 800,
+            }
+
+            response = requests.post(
+                f"{AZURE_OPENAI_ENDPOINT}openai/deployments/{DEPLOYMENT_NAME}/chat/completions?api-version=2024-02-15-preview",
+                headers=headers,
+                json=data
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                answer = result["choices"][0]["message"]["content"]
+                st.markdown("### AI Answer:")
                 st.write(answer)
             else:
                 st.error("Failed to get response from Azure OpenAI. Check your API key or endpoint.")
